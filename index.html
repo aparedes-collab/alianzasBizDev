@@ -257,6 +257,7 @@ body.hasmax{overflow:hidden}
 .jtbl thead th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .jtbl thead tr.g th{color:var(--jind);border-bottom:2px solid var(--jind);text-align:center}
 .jtbl td.ro{color:var(--ink-2)} .jtbl td.tt{font-weight:700;color:var(--ink)}
+.jtbl tr.sub td{background:var(--surface-2);font-style:italic}
 .jtbl tr.all td{font-weight:700;background:var(--surface-2)}
 .jtbl input{width:84px;text-align:right;border:1px solid var(--border);background:var(--surface);color:var(--ink);border-radius:7px;padding:4px 6px;font:inherit}
 .jtbl input:focus{outline:2px solid var(--jind);outline-offset:0}
@@ -1028,25 +1029,29 @@ function renderNotes(){
 const CL=D.clos, CLN=CL.cut;
 const PDFOBJ={Inbursa:{l:7600,c:350},Santander:{l:3700,c:100},BBVA:{l:483,c:40}};
 const JBR={KIA:()=>['KIA'],Inbursa:()=>brandsOf('Inbursa'),Santander:()=>brandsOf('Santander'),BBVA:()=>['Changan'],ALL:()=>D.brands};
-const JROWS=['KIA','Inbursa','Santander','BBVA'];
-const JNAME={KIA:'KIA (marca de Inbursa)',Inbursa:'Inbursa',Santander:'Santander',BBVA:'BBVA',ALL:'Todas las alianzas'};
+const JROWS=['KIA','Resto','Santander','BBVA'];
+const JNAME={KIA:'KIA',Resto:'Resto de Inbursa (Inbursa − KIA)',Inbursa:'Inbursa (KIA + resto)',Santander:'Santander',BBVA:'BBVA',ALL:'Todas las alianzas'};
 function excelAgg(brs){ const r={lApi:0,lTrad:0,cApi:0,cTrad:0};
   brs.forEach(b=>{ const m=D.meta[b]; if(!m) return; const a=m.lApi*D.convApi, t=m.lTrad*D.convTrad, s=(a+t)||1;
     r.lApi+=m.lApi; r.lTrad+=m.lTrad; r.cApi+=m.cierres*a/s; r.cTrad+=m.cierres*t/s; }); return r; }
 function defaultObj(src){
-  const o={}; JROWS.forEach(k=>{ o[k]=excelAgg(JBR[k]()); });
+  const o={}; ['KIA','Inbursa','Santander','BBVA'].forEach(k=>{ o[k]=excelAgg(JBR[k]()); });
   if(src==='pdf'){
     const f={}; BANKS.forEach(bk=>{ const e=o[bk], p=PDFOBJ[bk]; f[bk]={l:p.l/(e.lApi+e.lTrad), c:p.c/(e.cApi+e.cTrad)}; });
     const kia=o.KIA, fi=f.Inbursa; o.KIA={lApi:kia.lApi*fi.l,lTrad:kia.lTrad*fi.l,cApi:kia.cApi*fi.c,cTrad:kia.cTrad*fi.c};
     BANKS.forEach(bk=>{ const e=o[bk], ff=f[bk]; o[bk]={lApi:e.lApi*ff.l,lTrad:e.lTrad*ff.l,cApi:e.cApi*ff.c,cTrad:e.cTrad*ff.c}; });
   }
-  JROWS.forEach(k=>{ for(const f in o[k]) o[k][f]=Math.round(o[k][f]); });
-  return o;
+  ['KIA','Inbursa','Santander','BBVA'].forEach(k=>{ for(const f in o[k]) o[k][f]=Math.round(o[k][f]); });
+  o.Resto={}; for(const f in o.KIA) o.Resto[f]=Math.max(0,o.Inbursa[f]-o.KIA[f]);
+  delete o.Inbursa; return o;
 }
 const J={src:'pdf',obj:defaultObj('pdf'),cut:'auto',ui:{}};
-try{ const s=JSON.parse(localStorage.getItem('nexuObj')||'null'); if(s&&s.obj&&s.obj.KIA){ J.src=s.src; J.obj=s.obj; } }catch(_){}
+try{ const s=JSON.parse(localStorage.getItem('nexuObj')||'null'); if(s&&s.obj&&s.obj.KIA&&s.obj.Resto){ J.src=s.src; J.obj=s.obj; } }catch(_){}
 const saveObj=()=>{ try{localStorage.setItem('nexuObj',JSON.stringify({src:J.src,obj:J.obj}));}catch(_){} };
-const objOf=k=>{ if(k!=='ALL') return J.obj[k]; const r={lApi:0,lTrad:0,cApi:0,cTrad:0}; BANKS.forEach(b=>{for(const f in r) r[f]+=J.obj[b][f];}); return r; };
+const objOf=k=>{ const add=(...l)=>{ const r={lApi:0,lTrad:0,cApi:0,cTrad:0}; l.forEach(x=>{for(const f in r) r[f]+=x[f];}); return r; };
+  if(k==='Inbursa') return add(J.obj.KIA,J.obj.Resto);
+  if(k==='ALL') return add(J.obj.KIA,J.obj.Resto,J.obj.Santander,J.obj.BBVA);
+  return J.obj[k]; };
 const cutL=()=>J.cut==='auto'?OBSN:Math.min(OBSN,+J.cut);
 const cutC=()=>J.cut==='auto'?CLN:Math.min(CLN,+J.cut);
 const JD=[
@@ -1124,7 +1129,7 @@ function renderJunta(){
   const cl=cutL(), cc=cutC(), ds=dlabel(cl-1);
   const oc=(k,f)=>`<input type="number" min="0" step="1" data-k="${k}" data-f="${f}" value="${J.obj[k][f]}" aria-label="${JNAME[k]} ${f}">`;
   const row=k=>{ const o=J.obj[k]; return `<tr><td>${JNAME[k]}</td><td>${oc(k,'lApi')}</td><td>${oc(k,'lTrad')}</td><td class="tt">${fmt(o.lApi+o.lTrad)}</td><td>${oc(k,'cApi')}</td><td>${oc(k,'cTrad')}</td><td class="tt">${fmt(o.cApi+o.cTrad)}</td></tr>`; };
-  const a=objOf('ALL');
+  const a=objOf('ALL'), ib=objOf('Inbursa');
   const jc=jCol(); const li=(c,dash,txt)=>`<span><i class="${dash?'d':''}" style="border-color:${c}"></i>${txt}</span>`;
   const lg=`<div class="sl-lg">${li(jc.api,0,'Avance real API')}${li(jc.mapi,1,'Meta acumulada API')}${li(jc.trad,0,'Avance real tradicional')}${li(jc.mtrad,1,'Meta acumulada tradicional')}</div>`;
   const head=(t,cut,extra)=>`<div class="sl-h"><span class="mark">nexu</span><h2>${t}</h2><div class="cut">${cut}${extra||''}</div></div>`;
@@ -1135,9 +1140,9 @@ function renderJunta(){
     <div class="jsub">Se definen a inicio de mes y se editan aquí. Las metas acumuladas de las gráficas se recalculan al instante.</div></div>
     <div class="fgrp"><label>Fuente de los objetivos</label><div class="seg" id="jSrc"><button type="button" data-v="pdf" class="${J.src==='pdf'?'on':''}">Presentación (PDF)</button><button type="button" data-v="excel" class="${J.src==='excel'?'on':''}">Excel (Captura)</button><button type="button" data-v="custom" class="${J.src==='custom'?'on':''}" disabled title="Se activa al editar un número">Personalizado</button></div></div></div>
     <div style="overflow-x:auto"><table class="jtbl"><thead><tr class="g"><th></th><th colspan="3">Leads del mes</th><th colspan="3">Cierres del mes</th></tr><tr><th></th><th>API</th><th>Tradicional</th><th>Total</th><th>API</th><th>Tradicional</th><th>Total</th></tr></thead><tbody>
-    ${JROWS.map(row).join('')}
+    ${row('KIA')}${row('Resto')}<tr class="sub"><td>${JNAME.Inbursa}</td><td class="ro">${fmt(ib.lApi)}</td><td class="ro">${fmt(ib.lTrad)}</td><td class="tt">${fmt(ib.lApi+ib.lTrad)}</td><td class="ro">${fmt(ib.cApi)}</td><td class="ro">${fmt(ib.cTrad)}</td><td class="tt">${fmt(ib.cApi+ib.cTrad)}</td></tr>${row('Santander')}${row('BBVA')}
     <tr class="all"><td>${JNAME.ALL}</td><td class="ro">${fmt(a.lApi)}</td><td class="ro">${fmt(a.lTrad)}</td><td>${fmt(a.lApi+a.lTrad)}</td><td class="ro">${fmt(a.cApi)}</td><td class="ro">${fmt(a.cTrad)}</td><td>${fmt(a.cApi+a.cTrad)}</td></tr></tbody></table></div>
-    <div class="jnote">La presentación fija los totales por banco (Inbursa ${fmt(PDFOBJ.Inbursa.l)} leads / ${PDFOBJ.Inbursa.c} cierres · Santander ${fmt(PDFOBJ.Santander.l)} / ${PDFOBJ.Santander.c} · BBVA ${PDFOBJ.BBVA.l} / ${PDFOBJ.BBVA.c}). El reparto API / tradicional y la meta de KIA no vienen en ella: se derivan de la mezcla y conversión del Excel y puedes sobrescribirlos. Meta a la fecha = meta del mes × curva de peso diario del equipo comercial. Se guarda en este navegador.
+    <div class="jnote">La presentación fija los totales por banco (Inbursa ${fmt(PDFOBJ.Inbursa.l)} leads / ${PDFOBJ.Inbursa.c} cierres · Santander ${fmt(PDFOBJ.Santander.l)} / ${PDFOBJ.Santander.c} · BBVA ${PDFOBJ.BBVA.l} / ${PDFOBJ.BBVA.c}). El reparto API / tradicional y la meta de KIA no vienen en ella: se derivan de la mezcla y conversión del Excel y puedes sobrescribirlos. Inbursa = KIA + resto de Inbursa: al editar cualquiera de los dos, la gráfica de Inbursa y el total de alianzas se recalculan. Meta a la fecha = meta del mes × curva de peso diario del equipo comercial. Se guarda en este navegador.
     <button class="btn" id="jReset" type="button" style="margin-left:8px">Restablecer</button></div></section>
   <div class="jctl"><div class="fgrp"><label for="jCut">Corte de los datos</label><select id="jCut">${opt}</select></div></div>
   <section class="slide" id="slide1">${head('Alcance leads alianzas',`Corte al <b>${ds}</b>`)}${lg}<div class="sl-g">${JD.slice(0,4).map(jCard).join('')}</div>${foot(1)}</section>
