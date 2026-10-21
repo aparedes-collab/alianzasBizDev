@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funnel BBVA · Changan</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1b2430; --muted:#6b7686; --line:#e3e7ee; --accent:#1464a5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12161c; --card:#1b212a; --ink:#e8ecf2; --muted:#93a0b2; --line:#2a323e; --accent:#5aa9e6; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:baseline; justify-content:space-between;
+           padding:20px 24px 8px; }
+  h1 { margin:0; font-size:20px; }
+  .updated { color:var(--muted); font-size:13px; }
+  main { padding:8px 24px 32px; display:grid; gap:16px; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; }
+  button.chip { border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px;
+                padding:6px 14px; cursor:pointer; font:inherit; }
+  button.chip[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .kpi .v { font-size:28px; font-weight:650; }
+  .kpi .l { color:var(--muted); font-size:13px; }
+  .tablewrap { overflow:auto; max-height:60vh; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { position:sticky; top:0; background:var(--card); }
+  a.dl { color:var(--accent); font-size:13px; }
+  #error { color:#c0392b; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Funnel BBVA · Changan</h1>
+  <span class="updated" id="updated">Cargando…</span>
+</header>
+<main>
+  <div class="filters" id="filters" role="group" aria-label="Origen"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <strong>Detalle</strong>
+      <a class="dl" href="data/changan_funnel.csv" download>Descargar CSV</a>
+    </div>
+    <div class="tablewrap"><table id="tbl"></table></div>
+    <p id="error"></p>
+  </div>
+</main>
+
+<script>
+// Esqueleto: filtro por origen + conteos + tabla. Las gráficas del funnel y el
+// tablero de SLAs se agregan cuando conozcamos las columnas reales.
+const state = { rows: [], origen: "Todos" };
+
+const fmt = new Intl.NumberFormat("es-MX");
+
+async function load() {
+  try {
+    const [rows, meta] = await Promise.all([
+      fetch("data/changan_funnel.json").then(r => r.json()),
+      fetch("data/meta.json").then(r => r.json()),
+    ]);
+    state.rows = rows;
+    const d = new Date(meta.actualizado_utc);
+    document.getElementById("updated").textContent =
+      "Última actualización: " + d.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+    render();
+  } catch (e) {
+    document.getElementById("error").textContent = "No se pudieron cargar los datos.";
+  }
+}
+
+function render() {
+  const origenes = ["Todos", ...new Set(state.rows.map(r => r.origen))];
+  const f = document.getElementById("filters");
+  f.innerHTML = "";
+  origenes.forEach(o => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = o;
+    b.setAttribute("aria-pressed", o === state.origen);
+    b.onclick = () => { state.origen = o; render(); };
+    f.appendChild(b);
+  });
+
+  const rows = state.origen === "Todos" ? state.rows : state.rows.filter(r => r.origen === state.origen);
+
+  const k = document.getElementById("kpis");
+  k.innerHTML = "";
+  const counts = { Total: rows.length };
+  if (state.origen === "Todos") origenes.slice(1).forEach(o => counts[o] = state.rows.filter(r => r.origen === o).length);
+  Object.entries(counts).forEach(([l, v]) => {
+    k.insertAdjacentHTML("beforeend",
+      `<div class="card kpi"><div class="v">${fmt.format(v)}</div><div class="l">${l}</div></div>`);
+  });
+
+  const t = document.getElementById("tbl");
+  const cols = rows.length ? Object.keys(rows[0]) : [];
+  const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c]));
+  t.innerHTML = "<thead><tr>" + cols.map(c => `<th>${esc(c)}</th>`).join("") + "</tr></thead><tbody>" +
+    rows.slice(0, 500).map(r => "<tr>" + cols.map(c => `<td>${esc(r[c])}</td>`).join("") + "</tr>").join("") +
+    "</tbody>";
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+name: Actualizar dashboard BBVA
+
+on:
+  schedule:
+    - cron: "0 13 * * *"   # 13:00 UTC = 7:00 am CDMX (ajusta a tu gusto)
+  workflow_dispatch: {}     # botón "Run workflow" para correrlo a mano
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Capa 1 - extraer de Metabase (raw)
+        run: python pipeline/extract.py
+        env:
+          METABASE_URL_CHANGAN_API: ${{ secrets.METABASE_URL_CHANGAN_API }}
+          METABASE_URL_CHANGAN_TRAD: ${{ secrets.METABASE_URL_CHANGAN_TRAD }}
+
+      - name: Capas 2 y 3 - vistas intermedias y exportación
+        run: python pipeline/build.py
+
+      - name: Publicar en Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name=bbva-dashboard

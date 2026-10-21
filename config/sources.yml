@@ -1,0 +1,8 @@
+# Fuentes de Metabase (URLs públicas que terminan en .csv).
+# La URL NO va aquí: se lee de una variable de entorno / secret de GitHub,
+# porque un enlace público de Metabase funciona como una contraseña.
+sources:
+  changan_api:
+    url_env: METABASE_URL_CHANGAN_API
+  changan_tradicional:
+    url_env: METABASE_URL_CHANGAN_TRAD
