@@ -5,106 +5,579 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Funnel BBVA · Changan</title>
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --ink:#1b2430; --muted:#6b7686; --line:#e3e7ee; --accent:#1464a5; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#12161c; --card:#1b212a; --ink:#e8ecf2; --muted:#93a0b2; --line:#2a323e; --accent:#5aa9e6; }
+:root {
+  color-scheme: light dark;
+  --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10); --wash:rgba(11,11,11,.05);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --good:#006300; --bad:#d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --plane:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --wash:rgba(255,255,255,.06);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --good:#0ca30c; --bad:#e66767;
   }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
-  header { display:flex; flex-wrap:wrap; gap:12px; align-items:baseline; justify-content:space-between;
-           padding:20px 24px 8px; }
-  h1 { margin:0; font-size:20px; }
-  .updated { color:var(--muted); font-size:13px; }
-  main { padding:8px 24px 32px; display:grid; gap:16px; }
-  .filters { display:flex; gap:8px; flex-wrap:wrap; }
-  button.chip { border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px;
-                padding:6px 14px; cursor:pointer; font:inherit; }
-  button.chip[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
-  .kpi .v { font-size:28px; font-weight:650; }
-  .kpi .l { color:var(--muted); font-size:13px; }
-  .tablewrap { overflow:auto; max-height:60vh; }
-  table { border-collapse:collapse; width:100%; font-size:13px; }
-  th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
-  th { position:sticky; top:0; background:var(--card); }
-  a.dl { color:var(--accent); font-size:13px; }
-  #error { color:#c0392b; }
+}
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { margin:0; background:var(--plane); color:var(--ink); font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+.wrap { max-width:1280px; margin:0 auto; padding:0 16px 48px; }
+header { display:flex; flex-wrap:wrap; gap:6px 16px; align-items:baseline; justify-content:space-between; padding:20px 0 12px; }
+h1 { margin:0; font-size:20px; font-weight:650; }
+h3 { margin:0; font-size:14px; font-weight:650; }
+.sub { margin:2px 0 0; color:var(--ink2); font-size:12.5px; }
+.updated { color:var(--ink2); font-size:13px; }
+.updated.stale { color:var(--bad); font-weight:600; }
+
+.filters { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; padding:0 0 12px; }
+.filters label { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--ink2); }
+select, input[type=date] { font:inherit; color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 8px; min-width:140px; max-width:240px; }
+.seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--surface); }
+.seg button { font:inherit; color:var(--ink2); background:none; border:0; padding:6px 12px; cursor:pointer; }
+.seg button + button { border-left:1px solid var(--border); }
+.seg button[aria-pressed=true] { background:var(--ink); color:var(--surface); font-weight:600; }
+button:focus-visible, select:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline:2px solid var(--s1); outline-offset:2px; }
+
+.tabs { display:flex; flex-wrap:wrap; gap:2px; border-bottom:1px solid var(--grid); margin-bottom:16px; }
+.tabs button { font:inherit; color:var(--ink2); background:none; border:0; border-bottom:2px solid transparent; padding:8px 12px; cursor:pointer; margin-bottom:-1px; }
+.tabs button[aria-selected=true] { color:var(--ink); border-bottom-color:var(--ink); font-weight:600; }
+.tabs button:hover { background:var(--wash); }
+
+.stack { display:grid; gap:16px; }
+.grid2 { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr)); }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; min-width:0; }
+.chead { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:12px; }
+button.link { font:inherit; font-size:12.5px; color:var(--ink2); background:none; border:1px solid var(--border); border-radius:8px; padding:3px 10px; cursor:pointer; white-space:nowrap; }
+button.link:hover { background:var(--wash); }
+.note { color:var(--ink2); font-size:12.5px; margin:8px 0 0; }
+.empty { padding:32px; text-align:center; color:var(--ink2); }
+
+.tiles { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+.tile { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+.tile .l { color:var(--ink2); font-size:12.5px; }
+.tile .v { font-size:26px; font-weight:650; line-height:1.2; margin-top:2px; }
+.tile .d { color:var(--ink2); font-size:12px; margin-top:2px; }
+.tile .d.good, .good { color:var(--good); } .tile .d.bad, .bad { color:var(--bad); }
+
+.legend { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12.5px; color:var(--ink2); margin:0 0 10px; }
+.legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+.legend i.ln { height:2px; width:14px; border-radius:0; vertical-align:3px; }
+
+.hrow { display:grid; grid-template-columns:minmax(80px,210px) 1fr 72px; align-items:center; gap:10px; min-height:28px; border-radius:6px; }
+.hrow:hover, .hrow:focus-visible { background:var(--wash); }
+.hl { font-size:12.5px; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ht { height:16px; }
+.hb { height:16px; border-radius:0 4px 4px 0; min-width:2px; }
+.hs { display:flex; gap:2px; height:16px; }
+.hs > i { display:block; height:100%; min-width:2px; }
+.hs > i:last-child { border-radius:0 4px 4px 0; }
+.hv { text-align:right; font-variant-numeric:tabular-nums; font-size:12.5px; }
+
+svg.chart { width:100%; height:auto; display:block; touch-action:pan-y; }
+svg .grid { stroke:var(--grid); stroke-width:1; }
+svg .axis { stroke:var(--axis); stroke-width:1; }
+svg .tick { fill:var(--muted); font-size:11px; }
+svg .ln { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+svg .xh { stroke:var(--axis); stroke-width:1; }
+svg .dot { stroke:var(--surface); stroke-width:2; }
+
+.tw { overflow:auto; max-height:440px; border:1px solid var(--border); border-radius:8px; }
+table { border-collapse:collapse; width:100%; font-size:12.5px; }
+th, td { padding:6px 10px; text-align:left; border-bottom:1px solid var(--grid); white-space:nowrap; }
+td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; }
+th { position:sticky; top:0; background:var(--surface); color:var(--ink2); font-weight:600; cursor:pointer; user-select:none; z-index:1; }
+th[aria-sort=ascending]::after { content:" ▲"; font-size:9px; } th[aria-sort=descending]::after { content:" ▼"; font-size:9px; }
+tbody tr:hover { background:var(--wash); }
+.toolbar { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:space-between; margin-bottom:8px; }
+details { margin-top:24px; color:var(--ink2); font-size:12.5px; } summary { cursor:pointer; }
+details ul { margin:8px 0 0; padding-left:18px; }
+
+#tip { position:fixed; display:none; pointer-events:none; z-index:20; background:var(--surface); color:var(--ink); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.18); padding:8px 10px; font-size:12.5px; max-width:280px; }
+#tip .tt { color:var(--ink2); margin-bottom:4px; }
+#tip .tr { display:flex; align-items:center; gap:8px; }
+#tip .tr b { font-weight:650; font-variant-numeric:tabular-nums; }
+#tip .tr span { color:var(--ink2); }
+#tip .k { width:10px; height:3px; border-radius:2px; flex:none; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Funnel BBVA · Changan</h1>
-  <span class="updated" id="updated">Cargando…</span>
-</header>
-<main>
-  <div class="filters" id="filters" role="group" aria-label="Origen"></div>
-  <div class="kpis" id="kpis"></div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
-      <strong>Detalle</strong>
-      <a class="dl" href="data/changan_funnel.csv" download>Descargar CSV</a>
-    </div>
-    <div class="tablewrap"><table id="tbl"></table></div>
-    <p id="error"></p>
+<div class="wrap">
+  <header>
+    <h1>Funnel BBVA · Changan</h1>
+    <span class="updated" id="updated">Cargando…</span>
+  </header>
+
+  <div class="filters" id="filters" aria-label="Filtros">
+    <label>Periodo (fecha de ingreso)
+      <select id="f-periodo">
+        <option value="todo">Todo el periodo</option>
+        <option value="30">Últimos 30 días</option>
+        <option value="90">Últimos 90 días</option>
+        <option value="mes">Mes en curso</option>
+        <option value="custom">Personalizado…</option>
+      </select>
+    </label>
+    <label id="l-desde" hidden>Desde <input type="date" id="f-desde"></label>
+    <label id="l-hasta" hidden>Hasta <input type="date" id="f-hasta"></label>
+    <label>Origen
+      <span class="seg" id="f-origen" role="group" aria-label="Origen">
+        <button type="button" data-v="Todos" aria-pressed="true">Todos</button>
+        <button type="button" data-v="API" aria-pressed="false">API</button>
+        <button type="button" data-v="Tradicional" aria-pressed="false">Tradicional</button>
+      </span>
+    </label>
+    <label>División <select id="f-division"></select></label>
+    <label>Modelo <select id="f-modelo"></select></label>
+    <label>Agencia <select id="f-agencia"></select></label>
   </div>
-</main>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"></nav>
+  <main id="view" class="stack" aria-live="polite"></main>
+
+  <details>
+    <summary>Definiciones</summary>
+    <ul>
+      <li><b>Funnel por cosecha:</b> cada lead se cuenta en el día en que ingresó y se le asignan las etapas que alcanzó después (una etapa se alcanzó cuando su fecha no está vacía).</li>
+      <li><b>Solicitud:</b> lead que ya pasó a análisis. Los borradores siguen siendo leads.</li>
+      <li><b>Cierre:</b> desembolso (se puede cambiar en <code>ETAPA_CIERRE</code>, al inicio del script de esta página).</li>
+      <li><b>SLAs:</b> medianas del tiempo entre fechas de etapa. Decisión = aprobación o rechazo, lo que ocurra primero. Tiempos negativos se descartan.</li>
+      <li><b>Cotizaciones API:</b> última modificación = fecha más reciente entre las etapas del proceso y la última modificación registrada por la API.</li>
+    </ul>
+  </details>
+</div>
+<div id="tip" role="tooltip"></div>
 
 <script>
-// Esqueleto: filtro por origen + conteos + tabla. Las gráficas del funnel y el
-// tablero de SLAs se agregan cuando conozcamos las columnas reales.
-const state = { rows: [], origen: "Todos" };
+'use strict';
+/* ---------- utilidades ---------- */
+const ETAPA_CIERRE = 'desembolsos';
+const nf = new Intl.NumberFormat('es-MX'), nf1 = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 1 });
+const money = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 });
+const $ = (q, r = document) => r.querySelector(q);
 
-const fmt = new Intl.NumberFormat("es-MX");
-
-async function load() {
-  try {
-    const [rows, meta] = await Promise.all([
-      fetch("data/changan_funnel.json").then(r => r.json()),
-      fetch("data/meta.json").then(r => r.json()),
-    ]);
-    state.rows = rows;
-    const d = new Date(meta.actualizado_utc);
-    document.getElementById("updated").textContent =
-      "Última actualización: " + d.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
-    render();
-  } catch (e) {
-    document.getElementById("error").textContent = "No se pudieron cargar los datos.";
+function h(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === false || v == null) continue;
+    if (k === 'text') n.textContent = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? '' : v);
   }
+  for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(c));
+  return n;
+}
+function s(tag, attrs = {}, text) {
+  const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (text != null) n.textContent = text;
+  return n;
+}
+const pct = (a, b) => (b ? (100 * a) / b : null);
+const fmtPct = v => (v == null ? '—' : nf1.format(v) + ' %');
+const fmtDT = v => (v ? String(v).slice(0, 16).replace('T', ' ') : null);
+const day = v => String(v).slice(0, 10);
+function fmtMin(m) {
+  if (m == null) return '—';
+  if (m * 60 < 90) return nf1.format(m * 60) + ' s';
+  if (m < 90) return nf1.format(m) + ' min';
+  if (m < 48 * 60) return nf1.format(m / 60) + ' h';
+  return nf1.format(m / 1440) + ' d';
+}
+function median(arr) {
+  const a = arr.filter(v => v != null && isFinite(v)).sort((x, y) => x - y), n = a.length;
+  return n ? (n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2) : null;
+}
+function weekStart(d) {
+  const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7));
+  return t.toISOString().slice(0, 10);
+}
+function isoWeek(d) {
+  const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7) + 3);
+  const f = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((t - f) / 86400000 - 3 + ((f.getUTCDay() + 6) % 7)) / 7);
+}
+const addDays = (d, n) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+const localISO = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function niceTicks(max) {
+  const raw = max / 4 || 1, mag = 10 ** Math.floor(Math.log10(raw)), norm = raw / mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+  const top = Math.ceil(max / step) * step, ticks = [];
+  for (let v = 0; v <= top + 1e-9; v += step) ticks.push(v);
+  return { top, ticks };
+}
+const tickFmt = v => (v >= 1000 ? nf1.format(v / 1000) + ' K' : nf1.format(v));
+
+/* ---------- tooltip ---------- */
+const tip = $('#tip');
+function moveTip(ev) {
+  const pad = 14, w = tip.offsetWidth, hh = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - pad;
+  if (y + hh > innerHeight - 8) y = ev.clientY - hh - pad;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+function showTip(ev, title, rows) {
+  tip.replaceChildren();
+  if (title) tip.append(h('div', { class: 'tt', text: title }));
+  for (const r of rows) tip.append(h('div', { class: 'tr' }, r.color ? h('i', { class: 'k', style: 'background:' + r.color }) : null, h('b', { text: r.value }), h('span', { text: r.name })));
+  tip.style.display = 'block'; moveTip(ev);
+}
+const hideTip = () => { tip.style.display = 'none'; };
+function attachTip(node, title, rows) {
+  node.addEventListener('pointerenter', e => showTip(e, title, rows));
+  node.addEventListener('pointermove', moveTip);
+  node.addEventListener('pointerleave', hideTip);
+  node.addEventListener('focus', () => { const r = node.getBoundingClientRect(); showTip({ clientX: r.left + r.width / 2, clientY: r.top }, title, rows); });
+  node.addEventListener('blur', hideTip);
 }
 
+/* ---------- estado y filtros ---------- */
+const ORIGENES = ['API', 'Tradicional'];
+const ORIGEN_COLOR = { API: 'var(--s1)', Tradicional: 'var(--s2)' };
+const S = { tab: 'resumen', origen: 'Todos', periodo: 'todo', desde: '', hasta: '', division: '', modelo: '', agencia: '' };
+const D = {};
+const STAGES = [['ingresos', 'Ingresos'], ['preaprobados', 'Preaprobado'], ['analisis', 'Análisis'], ['aprobaciones', 'Aprobaciones'], ['ordenes_compra', 'Órdenes de compra'], ['contratos', 'Contratos'], ['desembolsos', 'Desembolsos']];
+const FIELDS = ['ingresos', 'preaprobados', 'analisis', 'aprobaciones', 'rechazos', 'ordenes_compra', 'contratos', 'desembolsos',
+  'desemb_n_precio', 'desemb_suma_precio', 'desemb_n_monto', 'desemb_suma_monto', 'desemb_n_tasa', 'desemb_suma_tasa'];
+
+function setPeriodo(p) {
+  S.periodo = p;
+  const now = new Date();
+  if (p === 'todo') { S.desde = ''; S.hasta = ''; }
+  else if (p === '30' || p === '90') { const d = new Date(); d.setDate(now.getDate() - Number(p)); S.desde = localISO(d); S.hasta = ''; }
+  else if (p === 'mes') { S.desde = localISO(new Date(now.getFullYear(), now.getMonth(), 1)); S.hasta = ''; }
+  $('#l-desde').hidden = $('#l-hasta').hidden = p !== 'custom';
+}
+const inRange = d => (!S.desde || d >= S.desde) && (!S.hasta || d <= S.hasta);
+const dimOK = (r, ignoreOrigen) => (ignoreOrigen || S.origen === 'Todos' || r.origen === S.origen) &&
+  (!S.division || r.division === S.division) && (!S.modelo || r.modelo === S.modelo) &&
+  (!S.agencia || (r.agencia ?? r.agencia_origen) === S.agencia);
+const fAgg = ignoreOrigen => D.agg.filter(r => inRange(r.dia) && dimOK(r, ignoreOrigen));
+function tot(rows) {
+  const t = Object.fromEntries(FIELDS.map(f => [f, 0]));
+  for (const r of rows) for (const f of FIELDS) t[f] += r[f] || 0;
+  return t;
+}
+function rank(rows, keyFn, field) {
+  const m = new Map();
+  for (const r of rows) {
+    const k = keyFn(r); let a = m.get(k);
+    if (!a) { a = { label: k, value: 0, by: {} }; m.set(k, a); }
+    const v = r[field] || 0; a.value += v; a.by[r.origen] = (a.by[r.origen] || 0) + v;
+  }
+  return [...m.values()].map(a => ({ label: a.label, value: a.value, parts: ORIGENES.map(o => ({ name: o, value: a.by[o] || 0, color: ORIGEN_COLOR[o] })) }));
+}
+
+/* ---------- componentes ---------- */
+const tile = (label, value, note, cls) => h('div', { class: 'tile' }, h('div', { class: 'l', text: label }), h('div', { class: 'v', text: value }), note ? h('div', { class: 'd ' + (cls || ''), text: note }) : null);
+const legend = items => h('div', { class: 'legend' }, items.map(i => h('span', {}, h('i', { class: i.line ? 'ln' : '', style: 'background:' + i.color }), i.name)));
+const originLegend = () => (S.origen === 'Todos' ? legend(ORIGENES.map(o => ({ name: o, color: ORIGEN_COLOR[o] }))) : null);
+
+function hbars(host, items, { fmt = nf.format, color } = {}) {
+  const stacked = S.origen === 'Todos' && items.length && items[0].parts;
+  const base = color || (S.origen !== 'Todos' ? ORIGEN_COLOR[S.origen] : 'var(--s1)');
+  const mx = Math.max(1e-9, ...items.map(i => i.value));
+  const wrap = h('div', {});
+  for (const it of items) {
+    let bar;
+    if (stacked) {
+      bar = h('div', { class: 'hs', style: `width:${(100 * it.value / mx).toFixed(2)}%` },
+        it.parts.filter(p => p.value > 0).map(p => h('i', { style: `flex:${p.value} 1 0;background:${p.color}` })));
+    } else bar = h('div', { class: 'hb', style: `width:${(100 * it.value / mx).toFixed(2)}%;background:${it.color || base}` });
+    const row = h('div', { class: 'hrow', tabindex: '0' }, h('div', { class: 'hl', text: it.label, title: it.label }), h('div', { class: 'ht' }, bar), h('div', { class: 'hv', text: fmt(it.value) }));
+    const rows = stacked ? [...it.parts.map(p => ({ name: p.name, value: fmt(p.value), color: p.color })), { name: 'Total', value: fmt(it.value) }] : [{ name: 'Valor', value: fmt(it.value), color: it.color || base }];
+    attachTip(row, it.label, it.tipRows || rows);
+    wrap.append(row);
+  }
+  host.append(wrap);
+}
+
+function lineChart(host, labels, series, tipTitle) {
+  const W = 760, H = 260, m = { l: 46, r: 18, t: 14, b: 30 }, n = labels.length;
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': 'Gráfica de líneas; los mismos datos están en la vista de tabla' });
+  const { top, ticks } = niceTicks(Math.max(1, ...series.flatMap(x => x.values)));
+  const X = i => (n === 1 ? m.l + (W - m.l - m.r) / 2 : m.l + i * (W - m.l - m.r) / (n - 1));
+  const Y = v => m.t + (H - m.t - m.b) * (1 - v / top);
+  for (const v of ticks) { svg.append(s('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: v === 0 ? 'axis' : 'grid' }), s('text', { x: m.l - 8, y: Y(v) + 4, class: 'tick', 'text-anchor': 'end' }, tickFmt(v))); }
+  const stepX = Math.ceil(n / 9);
+  labels.forEach((l, i) => { if (i % stepX === 0) svg.append(s('text', { x: X(i), y: H - 8, class: 'tick', 'text-anchor': 'middle' }, l)); });
+  for (const se of series) {
+    if (n > 1) svg.append(s('path', { d: se.values.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' '), class: 'ln', style: 'stroke:' + se.color }));
+    svg.append(s('circle', { cx: X(n - 1), cy: Y(se.values[n - 1]), r: 4, class: 'dot', style: 'fill:' + se.color }));
+  }
+  const xh = s('line', { y1: m.t, y2: H - m.b, class: 'xh', style: 'display:none' });
+  const dots = series.map(se => s('circle', { r: 4, class: 'dot', style: 'display:none;fill:' + se.color }));
+  svg.append(xh, ...dots);
+  const hit = s('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' });
+  hit.addEventListener('pointermove', ev => {
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round((p.x - m.l) / (W - m.l - m.r) * (n - 1))));
+    xh.setAttribute('x1', X(i)); xh.setAttribute('x2', X(i)); xh.style.display = '';
+    dots.forEach((d, k) => { d.setAttribute('cx', X(i)); d.setAttribute('cy', Y(series[k].values[i])); d.style.display = ''; });
+    showTip(ev, tipTitle(i), series.map(se => ({ name: se.name, value: nf.format(se.values[i]), color: se.color })));
+  });
+  hit.addEventListener('pointerleave', () => { xh.style.display = 'none'; dots.forEach(d => (d.style.display = 'none')); hideTip(); });
+  svg.append(hit); host.append(svg);
+}
+
+function columnChart(host, labels, values, tipTitle, color = 'var(--s1)') {
+  const W = 760, H = 260, m = { l: 46, r: 18, t: 14, b: 30 }, n = labels.length;
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': 'Gráfica de columnas; los mismos datos están en la vista de tabla' });
+  const { top, ticks } = niceTicks(Math.max(1, ...values));
+  const band = (W - m.l - m.r) / n, bw = Math.min(24, band * 0.6), Y = v => m.t + (H - m.t - m.b) * (1 - v / top);
+  for (const v of ticks) svg.append(s('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: v === 0 ? 'axis' : 'grid' }), s('text', { x: m.l - 8, y: Y(v) + 4, class: 'tick', 'text-anchor': 'end' }, tickFmt(v)));
+  values.forEach((v, i) => {
+    const x = m.l + band * i + (band - bw) / 2, y = Y(v), hgt = Math.max(0, H - m.b - y), r = Math.min(4, hgt);
+    const bar = s('path', { d: `M${x} ${H - m.b} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + bw - r} Q${x + bw} ${y} ${x + bw} ${y + r} V${H - m.b} Z`, style: 'fill:' + color, tabindex: '0' });
+    attachTip(bar, tipTitle(i), [{ name: 'Ingresos', value: nf.format(v), color }]);
+    svg.append(bar, s('text', { x: x + bw / 2, y: H - 8, class: 'tick', 'text-anchor': 'middle' }, labels[i]));
+  });
+  host.append(svg);
+}
+
+function cmp(a, b) {
+  if (a == null && b == null) return 0; if (a == null) return 1; if (b == null) return -1;
+  return typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b), 'es');
+}
+function dataTable(cols, rows, { limit = 100, sort = null, dir = -1 } = {}) {
+  const wrap = h('div', { class: 'tw' }), tbl = h('table'); wrap.append(tbl);
+  let sk = sort, sd = dir;
+  const draw = () => {
+    const arr = sk ? [...rows].sort((a, b) => cmp(a[sk], b[sk]) * sd) : rows;
+    const thead = h('thead', {}, h('tr', {}, cols.map(c => h('th', { class: c.num ? 'n' : '', tabindex: '0', 'aria-sort': sk === c.key ? (sd > 0 ? 'ascending' : 'descending') : 'none', text: c.label,
+      onclick: () => { sd = sk === c.key ? -sd : (c.num ? -1 : 1); sk = c.key; draw(); },
+      onkeydown: e => { if (e.key === 'Enter') e.currentTarget.click(); } }))));
+    const tbody = h('tbody', {}, arr.slice(0, limit).map(r => h('tr', {}, cols.map(c => {
+      const v = r[c.key]; return h('td', { class: c.num ? 'n' : '', text: v == null ? '—' : (c.fmt ? c.fmt(v, r) : String(v)) });
+    }))));
+    tbl.replaceChildren(thead, tbody);
+  };
+  draw(); return wrap;
+}
+function csvOf(cols, rows) {
+  const esc = v => { if (v == null) return ''; const t = String(v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  return '﻿' + [cols.map(c => esc(c.key)).join(','), ...rows.map(r => cols.map(c => esc(r[c.key])).join(','))].join('\n');
+}
+function download(name, cols, rows) {
+  const a = h('a', { href: URL.createObjectURL(new Blob([csvOf(cols, rows)], { type: 'text/csv;charset=utf-8' })), download: name });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+/* tarjeta con botón "Ver tabla" (la tabla siempre tiene los mismos datos que la gráfica) */
+function card(title, sub, draw, table) {
+  const body = h('div', {}); draw(body);
+  let showing = false;
+  const btn = table ? h('button', { class: 'link', type: 'button', 'aria-pressed': 'false', text: 'Ver tabla', onclick: () => {
+    showing = !showing; btn.textContent = showing ? 'Ver gráfica' : 'Ver tabla'; btn.setAttribute('aria-pressed', showing);
+    body.replaceChildren(); if (showing) body.append(dataTable(table.cols, table.rows, { limit: 200 })); else draw(body);
+  } }) : null;
+  return h('section', { class: 'card' }, h('div', { class: 'chead' }, h('div', {}, h('h3', { text: title }), sub ? h('p', { class: 'sub', text: sub }) : null), btn), body);
+}
+const empty = msg => h('div', { class: 'card empty', text: msg || 'Sin datos con los filtros actuales.' });
+const pctCol = (key, label) => ({ key, label, num: true, fmt: v => fmtPct(v) });
+const numCol = (key, label) => ({ key, label, num: true, fmt: v => nf.format(v) });
+
+/* ---------- secciones ---------- */
+function stageRows(list) {
+  return list.map(a => ({ ...a, pre: a.preaprobados, lead_analisis: pct(a.analisis, a.ingresos), analisis_aprob: pct(a.aprobaciones, a.analisis) }));
+}
+function byKey(rows, keyFn) {
+  const m = new Map();
+  for (const r of rows) { const k = keyFn(r); if (!m.has(k)) m.set(k, []); m.get(k).push(r); }
+  return [...m.entries()].map(([k, rs]) => ({ key: k, ...tot(rs) }));
+}
+
+function viewResumen(root) {
+  const rows = fAgg(); if (!rows.length) return root.append(empty());
+  const t = tot(rows);
+  root.append(h('div', { class: 'tiles' }, STAGES.map(([k, l], i) => tile(l, nf.format(t[k]), i ? `${fmtPct(pct(t[k], t[STAGES[i - 1][0]]))} de ${STAGES[i - 1][1].toLowerCase()}` : null))));
+  const C = [['Lead → preaprobado', t.preaprobados, t.ingresos], ['Lead → análisis', t.analisis, t.ingresos], ['Análisis → aprobación', t.aprobaciones, t.analisis],
+    ['Análisis → cierre', t[ETAPA_CIERRE], t.analisis], ['Aprobación → cierre', t[ETAPA_CIERRE], t.aprobaciones], ['Lead → cierre', t[ETAPA_CIERRE], t.ingresos]];
+  root.append(h('div', { class: 'tiles' }, C.map(([l, a, b]) => tile(l, fmtPct(pct(a, b)), b ? `${nf.format(a)} de ${nf.format(b)}` : 'Sin base'))));
+
+  const byOrigen = Object.fromEntries(ORIGENES.map(o => [o, tot(rows.filter(r => r.origen === o))]));
+  const stageItems = STAGES.map(([k, l]) => ({ label: l, value: t[k], parts: ORIGENES.map(o => ({ name: o, value: byOrigen[o][k], color: ORIGEN_COLOR[o] })) }));
+  const wk = new Map();
+  for (const r of rows) { const w = weekStart(r.dia); const a = wk.get(w) || { ingresos: 0, analisis: 0, desembolsos: 0 }; a.ingresos += r.ingresos; a.analisis += r.analisis; a.desembolsos += r.desembolsos; wk.set(w, a); }
+  const weeks = [...wk.keys()].sort(); const allW = [];
+  if (weeks.length) for (let w = weeks[0]; w <= weeks[weeks.length - 1]; w = addDays(w, 7)) allW.push(w);
+  const val = f => allW.map(w => (wk.get(w) || {})[f] || 0);
+  const series = [{ name: 'Ingresos', color: 'var(--s1)', values: val('ingresos') }, { name: 'Análisis', color: 'var(--s2)', values: val('analisis') }, { name: 'Desembolsos', color: 'var(--s3)', values: val('desembolsos') }];
+
+  root.append(h('div', { class: 'grid2' },
+    card('Etapas del funnel', 'Leads por cosecha de ingreso, hasta la etapa que alcanzaron', body => { const l = originLegend(); if (l) body.append(l); hbars(body, stageItems); },
+      { cols: [{ key: 'etapa', label: 'Etapa' }, numCol('API', 'API'), numCol('Tradicional', 'Tradicional'), numCol('total', 'Total')], rows: stageItems.map(i => ({ etapa: i.label, API: i.parts[0].value, Tradicional: i.parts[1].value, total: i.value })) }),
+    card('Ingresos, análisis y desembolsos por semana', 'Semana ISO de ingreso del lead · misma escala en las tres series', body => {
+      body.append(legend(series.map(x => ({ name: x.name, color: x.color, line: true }))));
+      lineChart(body, allW.map(w => 'Sem ' + isoWeek(w)), series, i => `Semana ${isoWeek(allW[i])} · desde ${allW[i]}`);
+    }, { cols: [{ key: 'semana', label: 'Semana' }, numCol('ingresos', 'Ingresos'), numCol('analisis', 'Análisis'), numCol('desembolsos', 'Desembolsos')], rows: allW.map((w, i) => ({ semana: `Sem ${isoWeek(w)} (${w})`, ingresos: series[0].values[i], analisis: series[1].values[i], desembolsos: series[2].values[i] })) })));
+
+  const detCols = [{ key: 'id_bbva', label: 'ID BBVA' }, { key: 'agencia_origen', label: 'Agencia' }, { key: 'division', label: 'División' }, { key: 'origen', label: 'Origen' },
+    { key: 'f_lead', label: 'Ingreso', fmt: fmtDT }, { key: 'f_preaprobado', label: 'Preaprobado', fmt: fmtDT }, { key: 'f_analisis', label: 'Análisis', fmt: fmtDT }, { key: 'etapa_funnel', label: 'Etapa' },
+    { key: 'modelo', label: 'Modelo' }, { key: 'tipo_producto', label: 'Producto' }, { key: 'referenciador', label: 'Referenciador' },
+    { key: 'precio_unidad', label: 'Precio', num: true, fmt: v => money.format(v) }, { key: 'monto_financiado_neto', label: 'Monto financiado', num: true, fmt: v => money.format(v) }, { key: 'tasa_final', label: 'Tasa', num: true, fmt: v => nf1.format(v) + ' %' }];
+  const det = D.sol.filter(r => inRange(day(r.f_lead)) && dimOK(r));
+  const allCols = Object.keys(D.sol[0] || {}).map(k => ({ key: k }));
+  root.append(h('section', { class: 'card' }, h('div', { class: 'toolbar' }, h('div', {}, h('h3', { text: 'Detalle de leads' }), h('p', { class: 'sub', text: `${nf.format(det.length)} leads con los filtros actuales · se muestran los primeros 100` })),
+    h('button', { class: 'link', type: 'button', text: 'Descargar CSV (filtrado)', onclick: () => download('detalle_leads_filtrado.csv', allCols, det) })), dataTable(detCols, det, { limit: 100 })));
+}
+
+function viewDivisiones(root) {
+  const rows = fAgg(); if (!rows.length) return root.append(empty());
+  const t = tot(rows);
+  const avg = (sum, n) => (n ? sum / n : null);
+  root.append(h('div', { class: 'tiles' },
+    tile('Precio promedio de la unidad', t.desemb_n_precio ? money.format(avg(t.desemb_suma_precio, t.desemb_n_precio)) : '—', `Desembolsadas · n = ${nf.format(t.desemb_n_precio)}`),
+    tile('Financiamiento promedio', t.desemb_n_monto ? money.format(avg(t.desemb_suma_monto, t.desemb_n_monto)) : '—', `Desembolsadas · n = ${nf.format(t.desemb_n_monto)}`),
+    tile('Tasa promedio', t.desemb_n_tasa ? nf1.format(avg(t.desemb_suma_tasa, t.desemb_n_tasa)) + ' %' : '—', `Desembolsadas · n = ${nf.format(t.desemb_n_tasa)}`)));
+  const div = rank(rows, r => r.division, 'ingresos').sort((a, b) => b.value - a.value);
+  const mod = rank(rows, r => r.modelo, 'ingresos').sort((a, b) => b.value - a.value).slice(0, 12);
+  root.append(h('div', { class: 'grid2' },
+    card('Ingresos por división', null, body => { const l = originLegend(); if (l) body.append(l); hbars(body, div); }),
+    card('Ingresos por modelo', 'Los 12 con más ingresos', body => { const l = originLegend(); if (l) body.append(l); hbars(body, mod); })));
+  const list = stageRows(byKey(rows, r => r.division)).map(a => ({ ...a, division: a.key }));
+  root.append(h('section', { class: 'card' }, h('h3', { text: 'División por etapa' }), h('div', { style: 'height:8px' }),
+    dataTable([{ key: 'division', label: 'División' }, numCol('ingresos', 'Ingresos'), numCol('preaprobados', 'Preaprobado'), numCol('analisis', 'Análisis'), numCol('aprobaciones', 'Aprobaciones'), numCol('ordenes_compra', 'Órdenes'), numCol('contratos', 'Contratos'), numCol('desembolsos', 'Desembolsos'), pctCol('lead_analisis', 'Lead → análisis'), pctCol('analisis_aprob', 'Análisis → aprobación')], list, { sort: 'ingresos' })));
+}
+
+function viewReferenciador(root) {
+  const rows = fAgg(); if (!rows.length) return root.append(empty());
+  const REF = [['Nexu', 'var(--s1)'], ['BBVA', 'var(--s2)'], ['Sin dato', 'var(--muted)']];
+  const refKey = r => (REF.some(x => x[0] === r.referenciador) ? r.referenciador : 'Sin dato');
+  const per = new Map();
+  for (const r of rows) { const a = per.get(r.division) || { label: r.division, value: 0, by: {} }; a.value += r.ingresos; a.by[refKey(r)] = (a.by[refKey(r)] || 0) + r.ingresos; per.set(r.division, a); }
+  const items = [...per.values()].sort((a, b) => b.value - a.value);
+  const totals = REF.map(([n, c]) => ({ name: n, color: c, value: items.reduce((x, a) => x + (a.by[n] || 0), 0) }));
+  const draw = body => {
+    body.append(legend(REF.map(([n, c]) => ({ name: n, color: c }))));
+    const mx = Math.max(1, ...items.map(i => i.value)), wrap = h('div');
+    for (const it of items) {
+      const bar = h('div', { class: 'hs', style: `width:${(100 * it.value / mx).toFixed(2)}%` }, REF.filter(([n]) => it.by[n] > 0).map(([n, c]) => h('i', { style: `flex:${it.by[n]} 1 0;background:${c}` })));
+      const row = h('div', { class: 'hrow', tabindex: '0' }, h('div', { class: 'hl', text: it.label, title: it.label }), h('div', { class: 'ht' }, bar), h('div', { class: 'hv', text: nf.format(it.value) }));
+      attachTip(row, it.label, [...REF.map(([n, c]) => ({ name: n, value: nf.format(it.by[n] || 0), color: c })), { name: 'Total', value: nf.format(it.value) }]);
+      wrap.append(row);
+    }
+    body.append(wrap);
+  };
+  const tcols = [{ key: 'division', label: 'División' }, ...REF.map(([n]) => numCol(n, n)), numCol('total', 'Total')];
+  const trows = items.map(a => ({ division: a.label, ...Object.fromEntries(REF.map(([n]) => [n, a.by[n] || 0])), total: a.value }));
+  root.append(h('div', { class: 'tiles' }, totals.map(x => tile(x.name, nf.format(x.value), `${fmtPct(pct(x.value, t0(totals)))} de los ingresos`))));
+  root.append(card('Referenciador por división', 'Ingresos según quién refirió al cliente', draw, { cols: tcols, rows: trows }));
+}
+const t0 = totals => totals.reduce((a, x) => a + x.value, 0);
+
+function viewAgencias(root) {
+  const rows = fAgg(); if (!rows.length) return root.append(empty());
+  const list = stageRows(byKey(rows, r => r.agencia)).map(a => ({ ...a, agencia: a.key }));
+  const avgIng = list.reduce((x, a) => x + a.ingresos, 0) / list.length;
+  const ranked = rank(rows, r => r.agencia, 'ingresos').filter(a => a.value > 0);
+  const top = [...ranked].sort((a, b) => b.value - a.value).slice(0, 10), bot = [...ranked].sort((a, b) => a.value - b.value).slice(0, 10);
+  root.append(h('div', { class: 'grid2' },
+    card('Top 10 agencias con más ingresos', null, body => { const l = originLegend(); if (l) body.append(l); hbars(body, top); }),
+    card('Top 10 agencias con menos ingresos', 'Entre las agencias con al menos un ingreso', body => { const l = originLegend(); if (l) body.append(l); hbars(body, bot); })));
+  const withDelta = list.map(a => ({ ...a, vs_prom: a.ingresos - avgIng }));
+  root.append(h('section', { class: 'card' }, h('h3', { text: 'Desempeño por agencia' }), h('p', { class: 'sub', text: `Promedio: ${nf1.format(avgIng)} ingresos por agencia (${nf.format(list.length)} agencias)` }), h('div', { style: 'height:8px' }),
+    dataTable([{ key: 'agencia', label: 'Agencia' }, numCol('ingresos', 'Ingresos'), { key: 'vs_prom', label: 'vs promedio', num: true, fmt: v => (v > 0 ? '+' : '') + nf1.format(v) }, numCol('preaprobados', 'Preaprobado'), numCol('analisis', 'Análisis'), numCol('aprobaciones', 'Aprobaciones'), numCol(ETAPA_CIERRE, 'Cierres'), pctCol('lead_analisis', 'Lead → análisis'), pctCol('analisis_aprob', 'Análisis → aprobación')], withDelta, { sort: 'ingresos', limit: 300 })));
+}
+
+function viewMoM(root) {
+  const rows = fAgg(); if (!rows.length) return root.append(empty());
+  const months = byKey(rows, r => r.dia.slice(0, 7)).sort((a, b) => a.key.localeCompare(b.key));
+  const dl = (cur, prev) => (prev ? (cur - prev) / prev * 100 : null);
+  const fd = p => (p == null ? '—' : (p > 0 ? '▲ +' : p < 0 ? '▼ ' : '= ') + nf1.format(p) + ' %');
+  const last = months[months.length - 1], prev = months[months.length - 2];
+  const M = [['ingresos', 'Ingresos'], ['analisis', 'Análisis'], ['aprobaciones', 'Aprobaciones'], [ETAPA_CIERRE, 'Cierres']];
+  root.append(h('div', { class: 'tiles' }, M.map(([k, l]) => { const p = prev ? dl(last[k], prev[k]) : null; return tile(`${l} · ${last.key}`, nf.format(last[k]), prev ? `${fd(p)} vs ${prev.key}` : 'Sin mes previo', p > 0 ? 'good' : p < 0 ? 'bad' : ''); })));
+  root.append(card('Ingresos por mes', 'Por mes de ingreso del lead. El mes en curso está incompleto.', body => columnChart(body, months.map(m => m.key), months.map(m => m.ingresos), i => months[i].key),
+    { cols: [{ key: 'mes', label: 'Mes' }, numCol('ingresos', 'Ingresos')], rows: months.map(m => ({ mes: m.key, ingresos: m.ingresos })) }));
+  const tr = months.map((m, i) => { const p = months[i - 1]; const o = { mes: m.key }; for (const [k] of M) { o[k] = m[k]; o[k + '_d'] = p ? dl(m[k], p[k]) : null; } return o; });
+  const cols = [{ key: 'mes', label: 'Mes' }];
+  for (const [k, l] of M) { cols.push(numCol(k, l), { key: k + '_d', label: 'Δ ' + l.toLowerCase(), num: true, fmt: v => fd(v) }); }
+  root.append(h('section', { class: 'card' }, h('h3', { text: 'Comparación mes contra mes' }), h('div', { style: 'height:8px' }), dataTable(cols, tr, { sort: 'mes', dir: -1 })));
+}
+
+const SLA = [['m_lead_preaprobado', 'Lead → preaprobado'], ['m_preaprobado_captura', 'Preaprobado → inicio de captura'], ['m_captura_analisis', 'Captura → análisis'], ['m_analisis_decision', 'Análisis → decisión'],
+  ['m_lead_decision', 'Lead → decisión'], ['m_decision_orden', 'Decisión → orden de compra'], ['m_orden_contrato', 'Orden de compra → contrato'], ['m_contrato_desembolso', 'Contrato → desembolso'], ['m_preaprob_sin_captura', 'Preaprobados sin captura (espera)']];
+function viewSLAs(root) {
+  const rows = D.sla.filter(r => inRange(r.dia) && dimOK(r)); if (!rows.length) return root.append(empty());
+  const med = k => median(rows.map(r => r[k])), cnt = k => rows.filter(r => r[k] != null).length;
+  root.append(h('div', { class: 'tiles' }, SLA.map(([k, l]) => tile(l, fmtMin(med(k)), `Mediana · n = ${nf.format(cnt(k))}`))));
+  const items = SLA.map(([k, l]) => ({ label: l, value: med(k) || 0, tipRows: [{ name: 'Mediana', value: fmtMin(med(k)) }, { name: 'Casos', value: nf.format(cnt(k)) }] }));
+  root.append(card('Mediana de tiempo por etapa', 'Las barras comparten escala lineal: los tiempos cortos casi no se ven, el valor está en la etiqueta', body => hbars(body, items, { fmt: fmtMin }),
+    { cols: [{ key: 'etapa', label: 'Etapa' }, { key: 'mediana', label: 'Mediana', num: true, fmt: fmtMin }, numCol('n', 'Casos')], rows: SLA.map(([k, l]) => ({ etapa: l, mediana: med(k), n: cnt(k) })) }));
+
+  const noOr = D.sla.filter(r => inRange(r.dia) && dimOK(r, true));
+  const grp = o => (o === 'Todos' ? noOr : noOr.filter(r => r.origen === o));
+  const orows = SLA.map(([k, l]) => { const o = { etapa: l }; for (const g of ['Todos', ...ORIGENES]) { const rs = grp(g); o[g] = median(rs.map(r => r[k])); o[g + '_n'] = rs.filter(r => r[k] != null).length; } return o; });
+  root.append(h('section', { class: 'card' }, h('h3', { text: 'Mediana por origen' }), h('p', { class: 'sub', text: 'Ignora el filtro de origen para comparar API contra tradicional con el resto de filtros aplicados' }), h('div', { style: 'height:8px' }),
+    dataTable([{ key: 'etapa', label: 'Etapa' }, ...['Todos', ...ORIGENES].flatMap(g => [{ key: g, label: g, num: true, fmt: fmtMin }, numCol(g + '_n', 'n ' + g)])], orows, { limit: 50, sort: null })));
+
+  const ag = new Map(); for (const r of rows) { if (!ag.has(r.agencia)) ag.set(r.agencia, []); ag.get(r.agencia).push(r); }
+  const arows = [...ag.entries()].map(([a, rs]) => ({ agencia: a, n: rs.filter(r => r.m_lead_decision != null).length, m_preaprobado_captura: median(rs.map(r => r.m_preaprobado_captura)), m_analisis_decision: median(rs.map(r => r.m_analisis_decision)), m_lead_decision: median(rs.map(r => r.m_lead_decision)) }));
+  root.append(h('section', { class: 'card' }, h('h3', { text: 'Mediana por agencia' }), h('div', { style: 'height:8px' }),
+    dataTable([{ key: 'agencia', label: 'Agencia' }, numCol('n', 'Leads con decisión'), { key: 'm_preaprobado_captura', label: 'Preaprobado → captura', num: true, fmt: fmtMin }, { key: 'm_analisis_decision', label: 'Análisis → decisión', num: true, fmt: fmtMin }, { key: 'm_lead_decision', label: 'Lead → decisión', num: true, fmt: fmtMin }], arows, { sort: 'n', limit: 300 })));
+}
+
+function viewCotizaciones(root) {
+  const rows = D.cot.filter(r => inRange(day(r.f_creacion)) && dimOK(r, true));
+  if (!rows.length) return root.append(empty('Sin cotizaciones API con los filtros actuales.'));
+  const conv = rows.filter(r => r.convirtio_solicitud), dias = median(conv.map(r => r.dias_a_solicitud));
+  const cutoff = localISO(new Date(Date.now() - 7 * 86400000));
+  const venc = rows.filter(r => !r.convirtio_solicitud && day(r.f_creacion) < cutoff).length;
+  root.append(h('div', { class: 'tiles' }, tile('Cotizaciones API', nf.format(rows.length)), tile('Convertidas a solicitud', nf.format(conv.length), fmtPct(pct(conv.length, rows.length))),
+    tile('Mediana a solicitud', dias == null ? '—' : nf1.format(dias) + ' días', `Solo las convertidas · n = ${nf.format(conv.length)}`), tile('Sin convertir tras 7 días', nf.format(venc), `${fmtPct(pct(venc, rows.length))} de las cotizaciones`)));
+  root.append(h('p', { class: 'note', text: 'Esta sección solo incluye origen API: ignora el filtro de origen. Una cotización puede tardar hasta una semana en convertirse en solicitud.' }));
+  const ag = new Map(); for (const r of rows) { if (!ag.has(r.agencia)) ag.set(r.agencia, []); ag.get(r.agencia).push(r); }
+  const mx = (rs, k) => rs.reduce((m, r) => (r[k] && (!m || r[k] > m) ? r[k] : m), null);
+  const arows = [...ag.entries()].map(([a, rs]) => ({ agencia: a, cotizaciones: rs.length, convertidas: rs.filter(r => r.convirtio_solicitud).length, conv_pct: pct(rs.filter(r => r.convirtio_solicitud).length, rs.length), ultima_creacion: mx(rs, 'f_creacion'), ultima_modificacion: mx(rs, 'ultima_modificacion') }));
+  root.append(h('section', { class: 'card' }, h('h3', { text: 'Cotizaciones por agencia' }), h('div', { style: 'height:8px' }),
+    dataTable([{ key: 'agencia', label: 'Agencia' }, numCol('cotizaciones', 'Cotizaciones'), numCol('convertidas', 'Convertidas'), pctCol('conv_pct', '% conversión'), { key: 'ultima_creacion', label: 'Última creación', fmt: fmtDT }, { key: 'ultima_modificacion', label: 'Última modificación', fmt: fmtDT }], arows, { sort: 'cotizaciones', limit: 300 })));
+  const cols = [{ key: 'agencia', label: 'Agencia' }, { key: 'id_solicitud', label: 'ID solicitud' }, { key: 'f_creacion', label: 'Creación', fmt: fmtDT }, { key: 'ultima_modificacion', label: 'Última modificación', fmt: fmtDT },
+    { key: 'estatus_api', label: 'Estatus API' }, { key: 'num_cotizaciones_api', label: '# cotiz.', num: true }, { key: 'seg_buro_api', label: 'Buró' }, { key: 'etapa_funnel', label: 'Etapa' },
+    { key: 'convirtio_solicitud', label: '¿Solicitud?', fmt: v => (v ? 'Sí' : 'No') }, { key: 'dias_a_solicitud', label: 'Días a solicitud', num: true, fmt: v => nf1.format(v) }];
+  root.append(h('section', { class: 'card' }, h('div', { class: 'toolbar' }, h('div', {}, h('h3', { text: 'Detalle de cotizaciones' }), h('p', { class: 'sub', text: `${nf.format(rows.length)} cotizaciones · se muestran las 200 con modificación más reciente` })),
+    h('button', { class: 'link', type: 'button', text: 'Descargar CSV (filtrado)', onclick: () => download('cotizaciones_api_filtrado.csv', Object.keys(rows[0]).map(k => ({ key: k })), rows) })), dataTable(cols, rows, { limit: 200, sort: 'ultima_modificacion', dir: -1 })));
+}
+
+/* ---------- arranque ---------- */
+const TABS = [['resumen', 'Resumen', viewResumen], ['divisiones', 'Divisiones y modelos', viewDivisiones], ['referenciador', 'Referenciador', viewReferenciador], ['agencias', 'Agencias', viewAgencias], ['mom', 'MoM', viewMoM], ['slas', 'SLAs', viewSLAs], ['cotizaciones', 'Cotizaciones API', viewCotizaciones]];
 function render() {
-  const origenes = ["Todos", ...new Set(state.rows.map(r => r.origen))];
-  const f = document.getElementById("filters");
-  f.innerHTML = "";
-  origenes.forEach(o => {
-    const b = document.createElement("button");
-    b.className = "chip"; b.textContent = o;
-    b.setAttribute("aria-pressed", o === state.origen);
-    b.onclick = () => { state.origen = o; render(); };
-    f.appendChild(b);
-  });
-
-  const rows = state.origen === "Todos" ? state.rows : state.rows.filter(r => r.origen === state.origen);
-
-  const k = document.getElementById("kpis");
-  k.innerHTML = "";
-  const counts = { Total: rows.length };
-  if (state.origen === "Todos") origenes.slice(1).forEach(o => counts[o] = state.rows.filter(r => r.origen === o).length);
-  Object.entries(counts).forEach(([l, v]) => {
-    k.insertAdjacentHTML("beforeend",
-      `<div class="card kpi"><div class="v">${fmt.format(v)}</div><div class="l">${l}</div></div>`);
-  });
-
-  const t = document.getElementById("tbl");
-  const cols = rows.length ? Object.keys(rows[0]) : [];
-  const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c]));
-  t.innerHTML = "<thead><tr>" + cols.map(c => `<th>${esc(c)}</th>`).join("") + "</tr></thead><tbody>" +
-    rows.slice(0, 500).map(r => "<tr>" + cols.map(c => `<td>${esc(r[c])}</td>`).join("") + "</tr>").join("") +
-    "</tbody>";
+  hideTip();
+  for (const b of $('#tabs').children) b.setAttribute('aria-selected', b.dataset.t === S.tab);
+  const root = $('#view'); root.replaceChildren();
+  try { TABS.find(t => t[0] === S.tab)[2](root); } catch (e) { console.error(e); root.append(empty('No se pudo dibujar esta sección.')); }
 }
+function fillSelect(sel, values, label, key) {
+  sel.replaceChildren(h('option', { value: '', text: label }), ...values.map(v => h('option', { value: v, text: v })));
+  sel.addEventListener('change', () => { S[key] = sel.value; render(); });
+}
+async function init() {
+  try {
+    const get = n => fetch(`data/${n}.json`, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(n + ' ' + r.status); return r.json(); });
+    const [agg, sla, sol, cot, meta] = await Promise.all([get('funnel_diario'), get('sla_leads'), get('solicitudes'), get('cotizaciones_api'), get('meta')]);
+    Object.assign(D, { agg, sla, sol, cot });
+    const when = new Date(meta.actualizado_utc), u = $('#updated');
+    u.textContent = 'Última actualización: ' + when.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Mexico_City' });
+    if (Date.now() - when > 36 * 3600e3) { u.classList.add('stale'); u.textContent += ' · datos con más de 36 horas'; }
+  } catch (e) { console.error(e); $('#updated').textContent = ''; return $('#view').append(empty('No se pudieron cargar los datos.')); }
 
-load();
+  const uniq = k => [...new Set(D.agg.map(r => r[k]))].sort((a, b) => String(a).localeCompare(String(b), 'es'));
+  fillSelect($('#f-division'), uniq('division'), 'Todas', 'division');
+  fillSelect($('#f-modelo'), uniq('modelo'), 'Todos', 'modelo');
+  fillSelect($('#f-agencia'), uniq('agencia'), 'Todas', 'agencia');
+  $('#f-periodo').addEventListener('change', e => { setPeriodo(e.target.value); render(); });
+  $('#f-desde').addEventListener('change', e => { S.desde = e.target.value; render(); });
+  $('#f-hasta').addEventListener('change', e => { S.hasta = e.target.value; render(); });
+  $('#f-origen').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; S.origen = b.dataset.v;
+    for (const x of $('#f-origen').children) x.setAttribute('aria-pressed', x === b); render();
+  });
+  const tabs = $('#tabs');
+  for (const [k, l] of TABS) tabs.append(h('button', { type: 'button', role: 'tab', 'data-t': k, text: l, onclick: () => { S.tab = k; history.replaceState(null, '', '#' + k); render(); } }));
+  const fromHash = location.hash.slice(1); if (TABS.some(t => t[0] === fromHash)) S.tab = fromHash;
+  render();
+}
+init();
 </script>
 </body>
 </html>

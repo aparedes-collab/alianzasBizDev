@@ -32,6 +32,15 @@ jobs:
       - name: Capas 2 y 3 - vistas intermedias y exportación
         run: python pipeline/build.py
 
+      - name: Guardar controles de calidad (no se publican)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-${{ github.run_id }}
+          path: internal/
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Publicar en Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:

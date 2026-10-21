@@ -1,5 +1,6 @@
 data/
 site/data/
+internal/
 __pycache__/
 .venv/
 .env
