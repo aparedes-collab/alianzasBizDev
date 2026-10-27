@@ -215,6 +215,8 @@ body{background:radial-gradient(1200px 500px at 85% -10%,rgba(125,180,240,.28),t
 .ptitle .pch{font-size:15px;font-weight:600;color:var(--o2);margin-left:10px;letter-spacing:0}
 .psub{color:var(--muted);font-size:13px;margin-top:4px}
 .pctl{display:flex;flex-wrap:wrap;gap:10px 16px}
+.brrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 0}
+.brlab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px}
 .pk{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0 8px}
 .pk .it{display:flex;flex-direction:column;gap:1px;min-width:0;border:1px solid var(--border);border-radius:9px;padding:6px 10px;background:var(--surface-2)}
 .pk .it span{font-size:11.5px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
@@ -708,12 +710,13 @@ const PANELS=[
  {id:'pKIA',title:'KIA',sub:'Marca de Inbursa con la mayor meta',brs:()=>['KIA'],groups:['total','canal'],mount:'panelsMain'},
  {id:'pExp',title:'Marcas seleccionadas',sub:'Sigue los filtros de banco y marca de arriba',brs:()=>selBrands(),groups:['total','canal','banco','marca'],mount:'panelExp'}
 ];
-const PS={}; PANELS.forEach(p=>PS[p.id]={group:'total',view:'acum',hidden:new Set(),table:false});
+const PS={}; PANELS.forEach(p=>PS[p.id]={group:'total',view:'acum',hidden:new Set(),table:false,brands:null});
+const pBrs=p=>{ const all=p.brs(), ps=PS[p.id]; return ps.brands?all.filter(b=>ps.brands.has(b)):all; };
 const GLABEL={total:'Total',canal:'Canal',banco:'Banco',marca:'Marca'};
 const TOPMARCAS=new Set([...D.brands].sort((a,b)=>sum(dailyArr([b],'both'))-sum(dailyArr([a],'both'))).slice(0,5));
 
 function entsFor(p){
-  const brs=p.brs(), ch=S.canal, g=PS[p.id].group;
+  const brs=pBrs(p), ch=S.canal, g=PS[p.id].group;
   const chName=c=>c==='api'?'API':c==='trad'?'Tradicional':'API + Tradicional';
   const mkE=(key,label,i,list,c,extra={})=>Object.assign({key,label,short:label,color:C.b[i],tcolor:C.o[i],brs:list,ch:c},extra);
   if(g==='total') return [mkE('total',chName(ch),0,brs,ch)];
@@ -727,13 +730,27 @@ function entsFor(p){
   return out;
 }
 
+function renderBrChips(p){
+  const box=$(p.id+'_br'); if(!box) return; const all=p.brs(), ps=PS[p.id], cur=new Set(pBrs(p)); box.replaceChildren();
+  const commit=s=>{ if(!s.size) return; ps.brands=s.size===all.length?null:s; ps.hidden.clear(); renderPanel(p); };
+  const mkc=(txt,cls,fn,title)=>{ const c=document.createElement('button'); c.type='button'; c.className='chip '+cls; c.innerHTML='<span class="dot"></span>'; c.append(txt); if(title) c.title=title; c.setAttribute('aria-pressed',cls.includes('on')); c.onclick=fn; return c; };
+  const lab=document.createElement('span'); lab.className='brlab'; lab.textContent='Filtrar marcas'; box.appendChild(lab);
+  box.appendChild(mkc('Todas',cur.size===all.length?'on bank':'bank',()=>commit(new Set(all))));
+  const banks=BANKS.filter(bk=>all.some(b=>D.bank[b]===bk));
+  banks.forEach(bk=>{
+    const bs=all.filter(b=>D.bank[b]===bk);
+    if(banks.length>1){ const n=bs.filter(b=>cur.has(b)).length;
+      box.appendChild(mkc(bk,'bank '+(n===bs.length?'on':n>0?'part':''),()=>{ const s=new Set(cur); if(n===bs.length) bs.forEach(b=>s.delete(b)); else bs.forEach(b=>s.add(b)); commit(s); },'Clic = todas las marcas de '+bk)); }
+    bs.forEach(b=>box.appendChild(mkc(b,cur.has(b)?'on':'',()=>{ const s=new Set(cur); s.has(b)?s.delete(b):s.add(b); commit(s); },hasMeta(b)?'':'Sin meta en el archivo')));
+  });
+}
 function buildPanel(p){
   const box=document.createElement('section'); box.className='card panel'+(p.full?' full':''); box.id=p.id;
   box.innerHTML=`<div class="ph"><div><h2 class="ptitle"><span id="${p.id}_t"></span><span class="pch" id="${p.id}_ch"></span><span class="psum" id="${p.id}_s"></span></h2><div class="psub">${p.sub}</div></div>
     <div class="pctl"><div class="fgrp"><label>Desagregar por</label><div class="seg" id="${p.id}_g">${p.groups.map(g=>`<button type="button" data-v="${g}">${GLABEL[g]}</button>`).join('')}</div></div>
     <div class="fgrp"><label>Vista</label><div class="seg" id="${p.id}_v"><button type="button" data-v="acum">Acumulado</button><button type="button" data-v="diario">Diario</button></div></div>
     <div class="pbtns"><button type="button" class="ibtn" id="${p.id}_kb" title="Mostrar u ocultar el cuadro de datos">▾ Datos</button><button type="button" class="ibtn" id="${p.id}_mx" title="Ver esta gráfica a pantalla completa (Esc para salir)">⤢ Ampliar</button></div></div></div>
-    <div class="pk" id="${p.id}_k"></div><div class="legend" id="${p.id}_l"></div><div class="chwrap"><canvas id="c_${p.id}"></canvas></div><div class="keys" id="${p.id}_keys"></div>
+    ${p.mount==='panelsMain'&&p.brs().length>1?`<div class="brrow" id="${p.id}_br"></div>`:''}<div class="pk" id="${p.id}_k"></div><div class="legend" id="${p.id}_l"></div><div class="chwrap"><canvas id="c_${p.id}"></canvas></div><div class="keys" id="${p.id}_keys"></div>
     <div class="tabletoggle"><button class="btn" type="button" id="${p.id}_tb">Ver como tabla</button></div><div class="dtable" id="${p.id}_dt"></div>`;
   $(p.mount).appendChild(box); $(p.id+'_t').textContent=p.title;
   box.querySelectorAll('#'+p.id+'_g button').forEach(b=>b.onclick=()=>{PS[p.id].group=b.dataset.v;PS[p.id].hidden.clear();renderPanel(p);});
@@ -761,10 +778,11 @@ function focusEnt(cid,key){
 }
 
 function renderPanel(p){
-  const ps=PS[p.id]; const brs=p.brs(); const ch=S.canal; const ents=entsFor(p); const view=ps.view;
+  const ps=PS[p.id]; const brs=pBrs(p); const ch=S.canal; const ents=entsFor(p); const view=ps.view;
   const sts=ents.map(e=>({e,st:stats(e.brs,e.ch)})); const vis=sts.filter(x=>!ps.hidden.has(x.e.key));
   const cid='c_'+p.id; const many=ents.length>3;
-  $(p.id+'_ch').textContent = ch==='api'?'· solo API':ch==='trad'?'· solo tradicional':'';
+  $(p.id+'_ch').textContent = (ch==='api'?'· solo API':ch==='trad'?'· solo tradicional':'')+(ps.brands?` · ${brs.length} de ${p.brs().length} marcas`:'');
+  renderBrChips(p);
   $(p.id+'_g').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===ps.group));
   $(p.id+'_v').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===ps.view));
   // KPI strip (siempre sobre el total del panel)
